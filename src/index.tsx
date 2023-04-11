@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 
@@ -18,6 +18,12 @@ const styles = StyleSheet.create({
   },
 });
 
+fetch(
+  'https://b.maps.owm.io/weather/cities/2/0/0?appid=b1b15e88fa797225412429c1c50c122a1',
+)
+  .then(() => 'success')
+  .catch(() => 'error');
+
 const App = (): JSX.Element => {
   useEffect(() => {
     MapboxGL.setTelemetryEnabled(false);
@@ -33,28 +39,14 @@ const App = (): JSX.Element => {
           version: 8,
           name: 'Land',
           sources: {
-            map: {
-              type: 'raster',
-              tiles: [
-                'https://b.sat.owm.io/vane/2.0/weather/TA2/{z}/{x}/{y}?appid=9de243494c0b295cca9337e1e96b00e2&fill_bound=true',
-              ],
-              tileSize: 256,
-              minzoom: 1,
-              maxzoom: 30,
-            },
             background: {
               type: 'raster',
               tiles: [
-                'https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+                'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
               ],
               tileSize: 256,
               minzoom: 1,
               maxzoom: 19,
-            },
-            cities: {
-              type: 'geojson',
-              data: 'https://b.maps.owm.io/weather/cities/2/0/0?appid=b1b15e88fa797225412429c1c50c122a1',
-              tileSize: 256,
             },
           },
           layers: [
@@ -65,21 +57,6 @@ const App = (): JSX.Element => {
               paint: {
                 'raster-fade-duration': 100,
               },
-            },
-            {
-              id: 'map',
-              type: 'raster',
-              source: 'map',
-              paint: {
-                'raster-fade-duration': 100,
-              },
-            },
-            {
-              id: 'cities',
-              type: 'circle',
-              source: 'cities',
-              'circle-radius': 10,
-              'circle-color': 'red',
             },
           ],
         })}>
