@@ -59,7 +59,7 @@ const App = (): JSX.Element => {
         styleURL={MapboxGL.StyleURL.Dark}
       >
         <MapboxGL.Camera
-          maxZoomLevel={10}
+          // maxZoomLevel={10}
           minZoomLevel={1}
           defaultSettings={{
             zoomLevel: 1,

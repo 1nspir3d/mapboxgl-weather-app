@@ -8,7 +8,7 @@ export const zalupaEbanaBlyat = (
   bounds: Position[],
   zoom: number,
 ): string[] => {
-  const poweredToZoom = Math.pow(2, zoom);
+  const poweredToZoom = Math.pow(2, Math.trunc(zoom));
   const maxTileXY = poweredToZoom - 1;
   const [ne, sw] = bounds;
 
