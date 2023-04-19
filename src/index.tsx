@@ -1,37 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
-import {
-  Feature,
-  Point
-} from 'geojson'
-import { zalupaEbanaBlyat } from './zalupa-ebana-blyat';
-import debounce from './debounce';
-
-type TFeature = Feature & {
-  geometry: Point
-}
+import { zalupaEbanaBlyat } from './utils/zalupa-ebana-blyat';
+import debounce from './utils/debounce';
+import { TFeature } from './types'
+import Marker from './components/Marker';
 
 MapboxGL.setAccessToken(
   'pk.eyJ1IjoiMW5zcGlyM2QiLCJhIjoiY2xmdWdhbzhsMDJkODNqbXU0ZXduenB4eSJ9.3gjSoGxYCmFckQ9g_JBnaA',
 );
 MapboxGL.setWellKnownTileServer(MapboxGL.TileServers.Mapbox);
-
-const getColor = (temp: number): string => {
-  if (temp <= 0) {
-    return '#1c71f2';
-  }
-  if (temp <= 10) {
-    return '#60bdfa';
-  }
-  if (temp <= 20) {
-    return '#e8d024';
-  }
-  if (temp <= 30) {
-    return '#fbaa1b';
-  }
-  return '#f56048';
-};
 
 const fetchWeather = async (urls: string[], setShapes: React.Dispatch<any>) => {
   const res = await Promise.all(
@@ -91,7 +69,7 @@ const App = (): JSX.Element => {
         />
         {shapes.map((feature, id) => {
           if (feature?.geometry?.coordinates) {
-            return buildMarker(feature);
+            return <Marker feature={feature} />
           }
           return null;
         })}
@@ -100,56 +78,14 @@ const App = (): JSX.Element => {
   );
 };
 
-const buildMarker = (feature: TFeature): JSX.Element => {
-  return (
-    <MapboxGL.MarkerView
-      coordinate={feature?.geometry?.coordinates}
-    >
-      <View
-        pointerEvents='none'
-        style={[
-          styles.marker,
-          {
-            backgroundColor: getColor(feature?.properties?.temp),
-          },
-        ]}>
-        <View style={styles.tempContainer}>
-          <Text>{Math.trunc(feature?.properties?.temp || 0)} C°</Text>
-        </View>
-        <Text ellipsizeMode="tail" style={styles.city}>
-          {feature?.properties?.city}
-        </Text>
-      </View>
-    </MapboxGL.MarkerView >
-  );
-};
-
 const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: '#F5FCFF',
   },
-
   map: {
     flex: 1,
-  },
-
-  marker: {
-    height: 20,
-    borderRadius: 5,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  tempContainer: {
-    height: '100%',
-    backgroundColor: 'white',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 2,
-  },
-  city: {
-    paddingHorizontal: 5,
-  },
+  }
 });
 
 export default App;
