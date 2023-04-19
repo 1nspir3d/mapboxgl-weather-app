@@ -1,7 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
+import {
+  Feature,
+  Point
+} from 'geojson'
 import { zalupaEbanaBlyat } from './zalupa-ebana-blyat';
+import debounce from './debounce';
+
+type TFeature = Feature & {
+  geometry: Point
+}
+
 MapboxGL.setAccessToken(
   'pk.eyJ1IjoiMW5zcGlyM2QiLCJhIjoiY2xmdWdhbzhsMDJkODNqbXU0ZXduenB4eSJ9.3gjSoGxYCmFckQ9g_JBnaA',
 );
@@ -23,10 +33,24 @@ const getColor = (temp: number): string => {
   return '#f56048';
 };
 
+const fetchWeather = async (urls: string[], setShapes: React.Dispatch<any>) => {
+  const res = await Promise.all(
+    urls.map(async (url) => {
+      const response = await fetch(url, {
+        method: 'GET',
+      });
+
+      return await response.json().then(data => data.features);
+    }));
+  setShapes(res.flat(1));
+};
+
+const bouncedFetch = debounce(500)(fetchWeather);
+
 const App = (): JSX.Element => {
   const [urls, setUrls] = useState<string[] | null>(null);
-  const [shapes, setShapes] = useState<any>([]);
-  console.log('shapes: ', shapes.length);
+  const [shapes, setShapes] = useState<TFeature[]>([]);
+
   useEffect(() => {
     MapboxGL.setTelemetryEnabled(false);
   }, []);
@@ -36,14 +60,7 @@ const App = (): JSX.Element => {
       return;
     }
 
-    Promise.all(
-      urls.map(async url => {
-        const data = await fetch(url, {
-          method: 'GET',
-        });
-        return await data.json().then(data => data.features);
-      }),
-    ).then(res => setShapes(res.flat(1)));
+    bouncedFetch(urls, setShapes);
   }, [urls]);
 
   return (
@@ -56,37 +73,13 @@ const App = (): JSX.Element => {
           setUrls(
             zalupaEbanaBlyat(
               feature.properties.visibleBounds,
-              feature.properties.zoomLevel,
+              feature.properties.zoomLevel + 1,
             ),
           );
         }}
         compassEnabled={true}
-        // styleURL={MapboxGL.StyleURL.Dark}
-        styleJSON={JSON.stringify({
-          version: 8,
-          name: 'Land',
-          sources: {
-            background: {
-              type: 'raster',
-              tiles: [
-                'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-              ],
-              tileSize: 256,
-              minzoom: 1,
-              maxzoom: 10,
-            },
-          },
-          layers: [
-            {
-              id: 'background',
-              type: 'raster',
-              source: 'background',
-              paint: {
-                'raster-fade-duration': 100,
-              },
-            },
-          ],
-        })}>
+        styleURL={MapboxGL.StyleURL.Dark}
+      >
         <MapboxGL.Camera
           maxZoomLevel={10}
           minZoomLevel={1}
@@ -96,33 +89,38 @@ const App = (): JSX.Element => {
             pitch: 0,
           }}
         />
-        {shapes.map((feature, id) => (
-          <MapboxGL.ShapeSource id={feature?.properties?.city} shape={feature}>
-            <MapboxGL.CircleLayer
-              id={`${feature?.properties?.city}-marker`}
-              aboveLayerID="background"
-              style={{
-                circleRadius: 20,
-                circleColor: getColor(feature.properties.temp),
-                circleStrokeColor: 'white',
-                circleStrokeWidth: 2,
-              }}>
-              <MapboxGL.SymbolLayer
-                id={`${feature?.properties?.city}-label`}
-                aboveLayerID="background"
-                style={{
-                  textField: 'ZALUPA',
-                  textColor: 'green',
-                  textSize: 12,
-                  textAllowOverlap: true,
-                  textIgnorePlacement: true,
-                }}
-              />
-            </MapboxGL.CircleLayer>
-          </MapboxGL.ShapeSource>
-        ))}
+        {shapes.map((feature, id) => {
+          if (feature?.geometry?.coordinates) {
+            return buildMarker(feature);
+          }
+          return null;
+        })}
       </MapboxGL.MapView>
     </View>
+  );
+};
+
+const buildMarker = (feature: TFeature): JSX.Element => {
+  return (
+    <MapboxGL.MarkerView
+      coordinate={feature?.geometry?.coordinates}
+    >
+      <View
+        pointerEvents='none'
+        style={[
+          styles.marker,
+          {
+            backgroundColor: getColor(feature?.properties?.temp),
+          },
+        ]}>
+        <View style={styles.tempContainer}>
+          <Text>{Math.trunc(feature?.properties?.temp || 0)} C°</Text>
+        </View>
+        <Text ellipsizeMode="tail" style={styles.city}>
+          {feature?.properties?.city}
+        </Text>
+      </View>
+    </MapboxGL.MarkerView >
   );
 };
 
@@ -134,6 +132,23 @@ const styles = StyleSheet.create({
 
   map: {
     flex: 1,
+  },
+
+  marker: {
+    height: 20,
+    borderRadius: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  tempContainer: {
+    height: '100%',
+    backgroundColor: 'white',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 2,
+  },
+  city: {
+    paddingHorizontal: 5,
   },
 });
 

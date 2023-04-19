@@ -8,9 +8,6 @@ export const zalupaEbanaBlyat = (
   bounds: Position[],
   zoom: number,
 ): string[] => {
-  //   sinLatitude = sin(latitude * pi/180)
-  // pixelX = ((longitude + 180) / 360) * 256 * 2 level
-  // pixelY = (0.5 – log((1 + sinLatitude) / (1 – sinLatitude)) / (4 * pi)) * 256 * 2 level
   const poweredToZoom = Math.pow(2, zoom);
   const maxTileXY = poweredToZoom - 1;
   const [ne, sw] = bounds;
@@ -47,9 +44,8 @@ export const zalupaEbanaBlyat = (
 
   for (let x = range[1][0]; x <= range[0][0]; x++) {
     for (let y = range[0][1]; y <= range[1][1]; y++) {
-      urls.push(buildUrl(zoom, x, y));
+      urls.push(buildUrl(Math.trunc(zoom), x, y));
     }
   }
-  console.log(urls);
   return urls;
 };
